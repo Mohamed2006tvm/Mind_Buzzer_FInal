@@ -1,45 +1,28 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from './store/gameStore';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import RoundCoding from './pages/RoundCoding';
 import RoundReact from './pages/RoundReact';
-import Round3Java from './pages/Round3Java'; // Naming kept for now, but used in Round 2
+import Round3Java from './pages/Round3Java';
 import Round2Selection from './pages/Round2Selection';
 import Leaderboard from './pages/Leaderboard';
 import BootScreen from './components/BootScreen';
 import StatusScreen from './components/StatusScreen';
 import AdminPanel from './components/AdminPanel';
 import CheatScreen from './components/CheatScreen';
-import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
-  const { phase, competitionStatus, teamName, setCompetitionStatus, unlockReact, round2Mode, cheated } = useGameStore();
+  const { phase, competitionStatus, round2Mode, cheated } = useGameStore();
+
+  // Sync with Supabase removed. Using LocalStorage only.
+  // useSupabaseSync();
   const [booted, setBooted] = React.useState(false);
   const [showAdmin, setShowAdmin] = React.useState(false);
 
-  // Sync competitionStatus from RoundScoreboard localStorage on load
-  // This handles the case where admin promotes from scoreboard and team refreshes
-  React.useEffect(() => {
-    if (competitionStatus === 'waiting' && teamName) {
-      // Check both round scoreboards
-      for (const key of ['round1_teams', 'round2_teams']) {
-        try {
-          const teams = JSON.parse(localStorage.getItem(key) || '[]');
-          const myTeam = teams.find((t: { name: string }) => t.name === teamName);
-          if (myTeam?.status === 'promoted') {
-            setCompetitionStatus('promoted');
-            unlockReact();
-            break;
-          } else if (myTeam?.status === 'eliminated') {
-            setCompetitionStatus('eliminated');
-            break;
-          }
-        } catch { /* ignore parse errors */ }
-      }
-    }
-  }, [competitionStatus, teamName, setCompetitionStatus, unlockReact]);
+
 
   // Admin Shortcut: Ctrl + Shift + X
   React.useEffect(() => {

@@ -185,9 +185,9 @@ const Round3Java: React.FC = () => {
             });
 
             // Speed Based Scoring
-            // Base 100 + Speed Bonus (Max 100 based on 5 mins/300s)
-            const speedBonus = Math.ceil((timeLeft / 300) * 100);
-            const totalScore = 100 + speedBonus;
+            // Base 50 + Speed Bonus (Max 50 based on 5 mins/300s)
+            const speedBonus = Math.ceil((timeLeft / 300) * 50);
+            const totalScore = 50 + speedBonus;
             addScore(totalScore, 'react'); // Attribute to Round 2
 
             // Persist Score for Round 2

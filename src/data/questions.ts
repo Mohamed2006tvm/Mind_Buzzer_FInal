@@ -1,4 +1,4 @@
-// ROUND 1: MIXED CODING (Python, Java, JavaScript)
+// ROUND 1: MIXED CODING (Python ONLY as requested)
 // Easy questions for quick testing
 export const CODING_QUESTIONS = [
   {

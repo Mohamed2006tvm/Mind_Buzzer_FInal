@@ -56,6 +56,16 @@ const RoundReact: React.FC = () => {
                 });
 
                 localStorage.setItem(storageKey, JSON.stringify(filtered));
+
+                // Submit to Google Sheet (Async)
+                import('../lib/googleSheets').then(({ submitToGoogleSheet }) => {
+                    submitToGoogleSheet({
+                        team_name: teamName,
+                        round1_score: state.codingScore,
+                        round2_score: state.reactScore,
+                        total_score: state.codingScore + state.reactScore
+                    });
+                });
             } catch (e) {
                 console.error("Score save failed", e);
             }
@@ -76,7 +86,7 @@ const RoundReact: React.FC = () => {
 
         setPreviewStatus('broken');
         setErrorMsg('Runtime Error: Component failed to mount properly.');
-        setTimer(600); // 10 minutes per challenge
+        setTimer(300); // 5 minutes per challenge
 
         timerRef.current = setInterval(() => {
             tickTimer();
@@ -117,10 +127,22 @@ const RoundReact: React.FC = () => {
                     score: state.reactScore,
                     solved: reactSolvedCount,
                     total: REACT_QUESTIONS.length,
-                    status: isQualified ? 'waiting' : 'eliminated'
+                    status: isQualified ? 'waiting' : 'eliminated' // Everyone waits for final results
                 });
 
                 localStorage.setItem(storageKey, JSON.stringify(filtered));
+
+                // NEW: Submit to Google Sheet
+                // We do this async and don't block the UI
+                import('../lib/googleSheets').then(({ submitToGoogleSheet }) => {
+                    submitToGoogleSheet({
+                        team_name: teamName,
+                        round1_score: state.codingScore,
+                        round2_score: state.reactScore,
+                        total_score: state.codingScore + state.reactScore
+                    });
+                });
+
             } catch (e) {
                 console.error("Score save failed", e);
             }
@@ -212,8 +234,11 @@ const RoundReact: React.FC = () => {
             colors: ['#61dafb', '#ffffff'] // React colors
         });
 
-        const bonus = Math.max(10, Math.floor(timeLeft / 2));
-        addScore(150 + bonus, 'react');
+        // Max 100 Points: 50 Base + Up to 50 for time
+        // timeLeft starts at 300.
+        const timeBonus = Math.floor((timeLeft / 300) * 50);
+        const totalPoints = 50 + timeBonus;
+        addScore(totalPoints, 'react');
 
         // Increment solved count
         incrementReactSolved();
@@ -293,7 +318,7 @@ const RoundReact: React.FC = () => {
                                 strokeWidth="6"
                                 fill="none"
                                 strokeDasharray={`${2 * Math.PI * 40}`}
-                                strokeDashoffset={`${2 * Math.PI * 40 * (1 - timeLeft / 600)}`}
+                                strokeDashoffset={`${2 * Math.PI * 40 * (1 - timeLeft / 300)}`}
                                 className="transition-all duration-1000"
                                 style={{ filter: `drop-shadow(0 0 8px ${timeLeft < 60 ? '#ff0000' : '#61dafb'})` }}
                             />
@@ -310,7 +335,7 @@ const RoundReact: React.FC = () => {
                     <div className="bg-black/60 px-6 py-3 rounded-xl border border-yellow-500/30 backdrop-blur">
                         <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Potential</div>
                         <div className="text-2xl font-bold text-yellow-400 font-mono">
-                            {150 + Math.max(10, Math.floor(timeLeft / 2))} <span className="text-sm text-gray-500">PTS</span>
+                            {50 + Math.floor((timeLeft / 300) * 50)} <span className="text-sm text-gray-500">PTS</span>
                         </div>
                     </div>
                 </div>
@@ -480,7 +505,7 @@ const RoundReact: React.FC = () => {
                                         transition={{ delay: 0.5 }}
                                         className="text-xl font-mono mb-6"
                                     >
-                                        +{150 + Math.max(10, Math.floor(timeLeft / 2))} POINTS
+                                        +{50 + Math.floor((timeLeft / 300) * 50)} POINTS
                                     </motion.p>
                                     <motion.div
                                         initial={{ opacity: 0 }}

@@ -3,7 +3,7 @@ import { useGameStore, type Question } from '../store/gameStore';
 import { CODING_QUESTIONS } from '../data/questions';
 import Editor from '@monaco-editor/react';
 import { motion } from 'framer-motion';
-import { Play, AlertTriangle, CheckCircle, Terminal, Terminal as TerminalIcon } from 'lucide-react';
+import { Play, AlertTriangle, CheckCircle, Terminal as TerminalIcon } from 'lucide-react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 
@@ -41,6 +41,9 @@ const RoundCoding: React.FC = () => {
             const state = useGameStore.getState();
             state.markCodingComplete();
 
+            // NEW RULE: Automatic Selection (Score > 370)
+            const isQualified = state.codingScore > 370;
+
             // 1. Persist Score for Admin Scoreboard (Round 1)
             const storageKey = 'round1_teams';
             try {
@@ -54,16 +57,28 @@ const RoundCoding: React.FC = () => {
                     id: Date.now(),
                     name: teamName,
                     score: state.codingScore,
-                    status: 'waiting' // Needs admin to promote
+                    status: isQualified ? 'promoted' : 'waiting'
                 });
 
                 localStorage.setItem(storageKey, JSON.stringify(filtered));
+
+                // Submit to Google Sheet (Async)
+                import('../lib/googleSheets').then(({ submitToGoogleSheet }) => {
+                    submitToGoogleSheet({
+                        team_name: teamName,
+                        round1_score: state.codingScore,
+                        round2_score: 0,
+                        total_score: state.codingScore
+                    });
+                });
             } catch (e) {
                 console.error("Score save failed", e);
             }
 
-            // 2. Set Status to WAITING (Triggers StatusScreen)
-            state.setCompetitionStatus('waiting');
+            // 2. Set Status
+            // If Qualified (>370) -> Promoted
+            // Else -> Waiting (for Top 6 check or elimination)
+            state.setCompetitionStatus(isQualified ? 'promoted' : 'waiting');
 
             return;
         }
@@ -104,35 +119,8 @@ const RoundCoding: React.FC = () => {
     // Auto-exit when timer hits 0
     useEffect(() => {
         if (timeLeft <= 0 && question && timerActive) { // Added timerActive check
-            const state = useGameStore.getState();
-
-            // Check if qualified (solved at least 60% of questions)
-            const isQualified = codingSolvedCount >= MIN_SOLVED;
-
-            // Save score to localStorage
-            const storageKey = 'round1_teams';
-            try {
-                const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                const teamName = state.teamName || 'UNKNOWN';
-                const filtered = existing.filter((t: any) => t.name !== teamName);
-
-                filtered.push({
-                    id: Date.now(),
-                    name: teamName,
-                    score: state.codingScore,
-                    solved: codingSolvedCount,
-                    total: CODING_QUESTIONS.length,
-                    status: isQualified ? 'waiting' : 'eliminated'
-                });
-
-                localStorage.setItem(storageKey, JSON.stringify(filtered));
-            } catch (e) {
-                console.error("Score save failed", e);
-            }
-
-            // Mark round complete and set status
-            state.markCodingComplete();
-            state.setCompetitionStatus(isQualified ? 'waiting' : 'eliminated');
+            // Timeout = Failed Question
+            handleCompletion(false);
 
             // Clean up timer
             if (timerRef.current) clearInterval(timerRef.current);
@@ -178,33 +166,7 @@ const RoundCoding: React.FC = () => {
         }
     }, [competitionStatus, setPhase, setRoundInProgress, stopTimer]);
 
-    const handleSuccess = () => {
-        setStatus('success');
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#0aff00', '#00f3ff']
-        });
-
-        // Time Based Scoring (Max 100)
-        // Formula: Base 50 + (TimeLeft/180 * 50) -> capped at 100
-        // Or simpler: Math.ceil( (TimeLeft / 180) * 100 ) ?
-        // User said: "MARKS ARE REWARD BASED ON THAT TIME" (implied fast = more points)
-        // I will use: Math.max(10, Math.ceil((timeLeft / 180) * 100))
-        const score = Math.max(10, Math.ceil((timeLeft / 180) * 100));
-        addScore(score, 'coding');
-
-        // Increment solved count
-        incrementCodingSolved();
-
-        // Clear autosave
-        localStorage.removeItem(`autosave_coding_${question.id}`);
-
-        setTimeout(() => {
-            nextCodingQuestion();
-        }, 2000);
-    };
+    // handleSuccess replaced by handleCompletion for Quiz Mode logic
 
     const runPython = async () => {
         let buffer = "";
@@ -227,19 +189,58 @@ const RoundCoding: React.FC = () => {
             checkOutput(buffer);
         } catch (err: any) {
             setOutput(prev => prev + '\n' + err.toString());
-            setStatus('error');
+            // Treat runtime/syntax errors as incorrect answers and advance
+            handleCompletion(false);
         }
     };
 
 
 
-    const checkOutput = (actual: string) => {
-        const expected = (question?.expected_output || question?.test_cases?.[0]?.output || "---").trim();
-        if (actual.trim().includes(expected)) {
-            handleSuccess();
+    const handleCompletion = (isCorrect: boolean) => {
+        // Prevent double triggers
+        if (status === 'success' || status === 'error') return;
+
+        // Stop timer immediately
+        if (timerRef.current) clearInterval(timerRef.current);
+        stopTimer();
+
+        if (isCorrect) {
+            setStatus('success');
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#0aff00', '#00f3ff']
+            });
+            // Score Logic
+            const score = Math.max(10, Math.ceil((timeLeft / 180) * 100));
+            addScore(score, 'coding');
+            incrementCodingSolved();
         } else {
             setStatus('error');
-            setOutput(prev => prev + `\n\n[SYSTEM]: Output Mismatch.\nExpected: ${expected}\nActual: ${actual.trim()}`);
+            // No score added for wrong answer in Quiz Mode
+        }
+
+        // Clear autosave
+        localStorage.removeItem(`autosave_coding_${question.id}`);
+
+        // Always move to next question after short delay
+        setTimeout(() => {
+            nextCodingQuestion();
+        }, 2000);
+    };
+
+
+    const checkOutput = (actual: string) => {
+        const expected = (question?.expected_output || question?.test_cases?.[0]?.output || "---").trim();
+        const isCorrect = actual.trim().includes(expected);
+
+        if (isCorrect) {
+            setOutput(prev => prev + `\n\n[SYSTEM]: CORRECT OUTPUT DETECTED.`);
+            handleCompletion(true);
+        } else {
+            setOutput(prev => prev + `\n\n[SYSTEM]: Output Mismatch.\nExpected: ${expected}\nActual: ${actual.trim()}\n\n[SYSTEM]: INCORRECT ANSWER RECORDED.`);
+            handleCompletion(false);
         }
     };
 
@@ -272,7 +273,7 @@ const RoundCoding: React.FC = () => {
                 <div className="relative z-10 flex-1">
                     <div className="flex items-center gap-4 mb-3">
                         <div className="p-2 bg-green-500/20 rounded-lg border border-green-500/50 backdrop-blur">
-                            <Terminal size={24} className="text-neon-green" />
+                            <TerminalIcon size={24} className="text-neon-green" />
                         </div>
                         <div>
                             <h2 className="text-2xl font-display text-neon-green tracking-wider">{question.title}</h2>
@@ -345,13 +346,15 @@ const RoundCoding: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Score Display */}
+                    {/* Score Display HIDDEN for Quiz Mode as requested */}
+                    {/*
                     <div className="bg-black/60 px-6 py-3 rounded-xl border border-yellow-500/30 backdrop-blur">
                         <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Potential</div>
                         <div className="text-2xl font-bold text-yellow-400 font-mono">
                             {Math.max(10, Math.ceil((timeLeft / 180) * 100))} <span className="text-sm text-gray-500">PTS</span>
                         </div>
                     </div>
+                    */}
                 </div>
             </div>
 
@@ -513,7 +516,7 @@ const RoundCoding: React.FC = () => {
                         ) : (
                             <>
                                 <Play size={18} />
-                                <span className="tracking-wider">RUN CODE</span>
+                                <span className="tracking-wider">SUBMIT ANSWER</span>
                             </>
                         )}
                     </button>
