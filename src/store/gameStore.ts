@@ -118,6 +118,7 @@ export const useGameStore = create<GameState>()(
                 if (round === 'coding') return { score: newScore, codingScore: state.codingScore + points };
                 if (round === 'react') return { score: newScore, reactScore: state.reactScore + points };
                 return { score: newScore };
+                
             }),
 
             // Coding Round Logic

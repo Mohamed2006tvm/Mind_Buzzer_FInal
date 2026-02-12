@@ -13,6 +13,7 @@ import BootScreen from './components/BootScreen';
 import StatusScreen from './components/StatusScreen';
 import AdminPanel from './components/AdminPanel';
 import CheatScreen from './components/CheatScreen';
+import { ToastContainer } from 'react-toastify';
 
 const App: React.FC = () => {
   const { phase, competitionStatus, round2Mode, cheated } = useGameStore();
@@ -98,6 +99,7 @@ const App: React.FC = () => {
           {renderPhase()}
         </motion.div>
       </AnimatePresence>
+      <ToastContainer position="top-right" theme="dark" />
     </Layout>
   );
 };

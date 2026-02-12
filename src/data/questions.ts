@@ -1,108 +1,265 @@
 // ROUND 1: MIXED CODING (Python ONLY as requested)
 // Easy questions for quick testing
 export const CODING_QUESTIONS = [
+
   {
     id: 1,
     language: 'python',
-    title: "Hello World",
-    description: "Fix the print statement to display 'Hello'.",
-    buggy_code: `# Fix the typo
-prnt("Hello")`,
-    expected_output: "Hello",
-    hint: "The function name is 'print'."
+    title: "Shopping Cart Calculator",
+    description: "Fix the code to correctly calculate total price with discount and shipping.",
+    buggy_code: `def calculate_total(items, discount_percent):
+    total = 0
+    for item in items:
+        total += item['price'] * item['quantity']
+    
+    # Apply discount
+    discount = total * discount_percent / 100
+    final_total = total - discount
+    
+    # Add shipping if total is less than 500
+    if final_total < 500
+        final_total += 50
+    
+    return round(final_total, 2)
+
+cart = [{'price': 100, 'quantity': 2}, {'price': 50, 'quantity': 3}]
+print(calculate_total(cart, 10))`,
+    expected_output: "365.0",
+    hint: "Check the if condition syntax."
   },
+
   {
     id: 2,
     language: 'python',
-    title: "Simple Addition",
-    description: "Fix the code to print the sum of 10 + 20.",
-    buggy_code: `a = 10
-b = 20
-print(a - b)`,
-    expected_output: "30",
-    hint: "Use '+' operator."
+    title: "Password Validator",
+    description: "Fix the logic so the password validator works correctly.",
+    buggy_code: `def validate_password(password):
+    has_digit = False
+    has_upper = False
+    has_lower = False
+    
+    if len(password) < 8:
+        return False
+    
+    for char in password:
+        if char.isdigit():
+            has_digit == True
+        if char.isupper():
+            has_upper = True
+        if char.islower():
+            has_lower = True
+    
+    return has_digit and has_upper and has_lower
+
+print(validate_password("MyPass123"))`,
+    expected_output: "True",
+    hint: "One comparison operator is wrong."
   },
+
   {
     id: 3,
     language: 'python',
-    title: "List Access",
-    description: "Print the first item of the list.",
-    buggy_code: `items = ["Apple", "Banana", "Cherry"]
-print(items[1])`,
-    expected_output: "Apple",
-    hint: "Python lists are 0-indexed."
+    title: "Email Validator",
+    description: "Fix the validation logic for email format.",
+    buggy_code: `def is_valid_email(email):
+    if "@" not in email:
+        return False
+    
+    parts = email.split("@")
+    
+    if len(parts) != 2:
+        return False
+    
+    username = parts[0]
+    domain = parts[1]
+    
+    if len(username) == 0 or len(domain) = 0:
+        return False
+    
+    return "." in domain
+
+print(is_valid_email("user@example.com"))`,
+    expected_output: "True",
+    hint: "There is an assignment operator mistake."
   },
+
   {
     id: 4,
     language: 'python',
-    title: "String Upper",
-    description: "Convert the string 'code' to uppercase.",
-    buggy_code: `text = "code"
-print(text.upper_case())`,
-    expected_output: "CODE",
-    hint: "The method is .upper()."
+    title: "Word Frequency Counter",
+    description: "Fix the dictionary update logic.",
+    buggy_code: `def count_words(sentence):
+    words = sentence.lower().split()
+    frequency = {}
+    
+    for word in words:
+        # Remove punctuation
+        clean_word = word.strip(".,!?;:")
+        
+        if clean_word in frequency:
+            frequency[clean_word] += 1
+        else:
+            frequency[clean_word] == 1
+    
+    return frequency
+
+text = "Hello world, hello Python, Python is great"
+result = count_words(text)
+print(result)`,
+    expected_output: "{'hello': 2, 'world': 1, 'python': 2, 'is': 1, 'great': 1}",
+    hint: "Dictionary assignment is incorrect."
   },
+
   {
     id: 5,
     language: 'python',
-    title: "Loop Range",
-    description: "Print numbers 0 to 2 (one per line).",
-    buggy_code: `for i in range(1, 3):
-    print(i)`,
-    expected_output: "0\n1\n2",
-    hint: "range(start, end) excludes end. Default start is 0."
+    title: "Movie Ticket Booking",
+    description: "Fix the conditional statement for matinee discount.",
+    buggy_code: `def book_tickets(age, num_tickets, show_time):
+    ticket_price = 200
+    
+    # Senior citizen discount
+    if age >= 60:
+        ticket_price = 150
+    # Child discount
+    elif age < 12:
+        ticket_price = 100
+    
+    total = ticket_price * num_tickets
+    
+    # Matinee show discount
+    if show_time == "matinee"
+        total = total * 0.8
+    
+    return f"Total: Rs. {total}"
+
+print(book_tickets(65, 2, "matinee"))`,
+    expected_output: "Total: Rs. 240.0",
+    hint: "Check missing colon in condition."
   }
 ];
+
 
 // ROUND 2: REACT DEBUGGING
 // Easy questions for quick testing — pure JSX, no imports
 export const REACT_QUESTIONS = [
   {
     id: 1,
-    title: "Add Click Handler",
-    description: "The button does nothing when clicked. Add an onClick handler to call handleClick.",
-    buggy_code: `function App() {
-  function handleClick() {
-    alert("Clicked!");
-  }
+    language: "react",
+    title: "Toggle Theme",
+    difficulty: "Easy",
+    description: "Create a React component with default theme as light. Toggle between light and dark when button is clicked. Background and text color should change accordingly.",
+    buggy_code: `import React from "react";
+
+export default function ToggleTheme() {
+  // Your code here
+}`,
+    expected_output: "Theme toggles between Light and Dark",
+    hint: "Use useState to store theme and toggle it on button click.",
+    testCases: [
+      "Initial render → Light theme",
+      "Click button once → Dark theme",
+      "Click again → Light theme",
+      "Background and text color update correctly"
+    ],
+    solution: `import React, { useState } from "react";
+
+export default function ToggleTheme() {
+  const [theme, setTheme] = useState("light");
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const style = {
+    backgroundColor: theme === "light" ? "#ffffff" : "#222222",
+    color: theme === "light" ? "#000000" : "#ffffff",
+    height: "100vh",
+    padding: "20px"
+  };
 
   return (
-    <button>Click Me</button>
+    <div style={style}>
+      <button onClick={toggleTheme}>Toggle Theme</button>
+      <h2>Current Theme: {theme}</h2>
+    </div>
   );
-}`,
-    success_condition: "Button shows alert on click"
+}`
   },
+
   {
     id: 2,
-    title: "Fix Counter",
-    description: "The counter doesn't update. You can't assign directly to a state variable — use setCount() instead.",
-    buggy_code: `function App() {
-  const [count, setCount] = React.useState(0);
+    language: "react",
+    title: "Increment up to 5",
+    difficulty: "Easy",
+    description: "Create a counter using useState that increments when button is clicked. Stop incrementing at 5 and disable the button at 5.",
+    buggy_code: `import React from "react";
+
+export default function Counter() {
+  // Your code here
+}`,
+    expected_output: "Counter increments until 5 then disables",
+    hint: "Use state and disable button when count >= 5.",
+    testCases: [
+      "Click once → Count = 1",
+      "Click three times → Count = 3",
+      "Click five times → Count = 5",
+      "Click after five → Count remains 5",
+      "At count 5 → Button disabled"
+    ],
+    solution: `import React, { useState } from "react";
+
+export default function Counter() {
+  const [count, setCount] = useState(0);
 
   return (
     <div>
-      <p>Count: {count}</p>
-      <button onClick={() => count = count + 1}>Add</button>
+      <h2>{count}</h2>
+      <button 
+        onClick={() => setCount(count + 1)} 
+        disabled={count >= 5}
+      >
+        Increment
+      </button>
     </div>
   );
-}`,
-    success_condition: "Counter increments when button is clicked"
+}`
   },
+
   {
     id: 3,
-    title: "Show / Hide Text",
-    description: "The secret text is always visible. Use conditional rendering with {show && ...} to toggle it.",
-    buggy_code: `function App() {
-  const [show, setShow] = React.useState(false);
+    language: "react",
+    title: "Dynamic Input Display",
+    difficulty: "Easy",
+    description: "Create an input field where user types text and the same text appears dynamically below inside a p tag.",
+    buggy_code: `import React from "react";
+
+export default function LiveInput() {
+  // Your code here
+}`,
+    expected_output: "Typed text appears below input dynamically",
+    hint: "Use onChange and state binding.",
+    testCases: [
+      "Input 'Hello' → Displays Hello",
+      "Input 'React' → Displays React",
+      "Clear input → Displays empty string"
+    ],
+    solution: `import React, { useState } from "react";
+
+export default function LiveInput() {
+  const [text, setText] = useState("");
 
   return (
     <div>
-      <button onClick={() => setShow(!show)}>Toggle</button>
-      <p>Secret Message</p>
+      <input 
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Type something..."
+      />
+      <p>{text}</p>
     </div>
   );
-}`,
-    success_condition: "Text toggles on button click"
+}`
   }
 ];
 

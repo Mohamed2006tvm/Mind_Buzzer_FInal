@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { Zap, Lock, CheckCircle, Trophy, ChevronRight, Code, Palette, AlertTriangle, Shield, Cpu } from 'lucide-react';
+import ConfirmationPopup from '../components/ConfirmationPopup';
 
 const Dashboard: React.FC = () => {
     const {
@@ -10,6 +11,17 @@ const Dashboard: React.FC = () => {
         reactUnlocked,
         reactCompleted
     } = useGameStore();
+
+    const [confirm, setConfirm] = React.useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
+
+    const handleConfirmClose = () => {
+        setConfirm(prev => ({ ...prev, isOpen: false }));
+    };
 
     return (
         <div className="w-full max-w-5xl flex flex-col items-center gap-8 px-4 pb-10">
@@ -100,9 +112,15 @@ const Dashboard: React.FC = () => {
                     buttonLabel={codingCompleted ? 'MISSION COMPLETE' : 'INITIALIZE'}
                     onLaunch={() => {
                         if (!codingCompleted) {
-                            if (window.confirm('🚀 LAUNCH ROUND 1?\n\nThis will start the timer. Are you ready?')) {
-                                setPhase('coding');
-                            }
+                            setConfirm({
+                                isOpen: true,
+                                title: 'LAUNCH ROUND 1?',
+                                message: 'This will start the timer. Are you ready to debug the Logic Core?',
+                                onConfirm: () => {
+                                    setPhase('coding');
+                                    handleConfirmClose();
+                                }
+                            });
                         }
                     }}
                 />
@@ -127,9 +145,15 @@ const Dashboard: React.FC = () => {
                     buttonLabel={reactCompleted ? 'MISSION COMPLETE' : reactUnlocked ? 'DEPLOY' : 'LOCKED'}
                     onLaunch={() => {
                         if (reactUnlocked && !reactCompleted) {
-                            if (window.confirm('🚀 LAUNCH ROUND 2?\n\nPrepare for UI debugging.\nAre you ready?')) {
-                                setPhase('react');
-                            }
+                            setConfirm({
+                                isOpen: true,
+                                title: 'LAUNCH ROUND 2?',
+                                message: 'Prepare for UI debugging. The timer will start immediately.',
+                                onConfirm: () => {
+                                    setPhase('react');
+                                    handleConfirmClose();
+                                }
+                            });
                         }
                     }}
                 />
@@ -178,7 +202,15 @@ const Dashboard: React.FC = () => {
                     <ChevronRight size={15} className="text-yellow-600 group-hover:translate-x-1 transition-transform relative z-10" />
                 </motion.button>
             </motion.div>
-        </div>
+
+            <ConfirmationPopup
+                isOpen={confirm.isOpen}
+                title={confirm.title}
+                message={confirm.message}
+                onConfirm={confirm.onConfirm}
+                onCancel={handleConfirmClose}
+            />
+        </div >
     );
 };
 
@@ -338,7 +370,7 @@ const MissionCard: React.FC<MissionCardProps> = ({
                             <h2 className={`text-lg font-black tracking-wider uppercase leading-none mt-0.5
                                 ${locked ? 'text-gray-600' : completed ? 'text-gray-400' : 'text-white'}
                             `}
-                            style={{ fontFamily: '"Orbitron", monospace' }}>
+                                style={{ fontFamily: '"Orbitron", monospace' }}>
                                 {title}
                             </h2>
                         </div>

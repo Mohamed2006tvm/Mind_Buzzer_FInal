@@ -11,7 +11,7 @@ const SFX = {
 };
 
 const StatusScreen: React.FC = () => {
-    const { competitionStatus, setCompetitionStatus, setPhase, unlockReact, codingScore } = useGameStore();
+    const { competitionStatus, setCompetitionStatus, setPhase, unlockReact, score, codingScore } = useGameStore();
 
     const [playSuccess] = useSound(SFX.SUCCESS, { volume: 0.6 });
     const [playFail] = useSound(SFX.FAIL, { volume: 0.5 });
@@ -105,7 +105,7 @@ const StatusScreen: React.FC = () => {
                                     transition={{ delay: 0.75 }}
                                     className="text-yellow-400"
                                 >
-                                    // ROUND 1 SCORE: {codingScore} PTS
+                                    // YOUR SCORE: {score.toString().padStart(4, '0')} PTS
                                 </motion.span>
                                 <br />
                                 <motion.span
@@ -304,7 +304,7 @@ const StatusScreen: React.FC = () => {
                         >
                             <p className="font-mono text-green-400 text-lg">
                                 // CLEARANCE LEVEL INCREASED.<br />
-                                // SCORE: {codingScore} PTS.<br />
+                                // SCORE:{codingScore} PTS.<br />
                                 // NEW MODULES UNLOCKED.<br />
                                 <span className="text-green-300 font-bold">// PROCEED TO NEXT SECTOR.</span>
                             </p>

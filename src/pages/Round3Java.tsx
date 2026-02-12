@@ -4,6 +4,7 @@ import { JAVA_QUESTIONS } from '../data/questions';
 import Editor from '@monaco-editor/react';
 import { motion } from 'framer-motion';
 import { Check, X, Cpu } from 'lucide-react';
+import AlertPopup from '../components/AlertPopup';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 
@@ -27,6 +28,11 @@ const Round3Java: React.FC = () => {
     const [status, setStatus] = useState<'selecting' | 'coding' | 'compiling' | 'testing' | 'success' | 'failed'>('selecting');
     const [logs, setLogs] = useState<string[]>([]);
     const [testResults, setTestResults] = useState<{ input: string, output: string, passed: boolean }[]>([]);
+    const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type: 'warning' | 'error' | 'success' | 'info' }>({
+        isOpen: false,
+        message: '',
+        type: 'warning'
+    });
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -54,6 +60,24 @@ const Round3Java: React.FC = () => {
     useEffect(() => {
         if (timeLeft <= 0 && status === 'coding') {
             finalizeRound(false);
+        }
+    }, [timeLeft, status]);
+
+    // Low Time Alert
+    useEffect(() => {
+        if (timeLeft === 300 && status === 'coding') {
+            setAlert({
+                isOpen: true,
+                message: "5 MINUTES REMAINING!",
+                type: 'warning'
+            });
+        }
+        if (timeLeft === 60 && status === 'coding') {
+            setAlert({
+                isOpen: true,
+                message: "LESS THAN 1 MINUTE REMAINING!",
+                type: 'error'
+            });
         }
     }, [timeLeft, status]);
 
@@ -91,7 +115,7 @@ const Round3Java: React.FC = () => {
         setSelectedQ(idx);
         setCode(JAVA_QUESTIONS[idx].starter_code || '');
         setStatus('coding');
-        setTimer(300); // 5 mins
+        setTimer(600); // 10 mins
         setLogs(['// SYSTEM READY', '// JDK 17.0.2 LOADED']);
         setTestResults([]);
         setRoundInProgress(true); // Lock user in round
@@ -185,9 +209,9 @@ const Round3Java: React.FC = () => {
             });
 
             // Speed Based Scoring
-            // Base 50 + Speed Bonus (Max 50 based on 5 mins/300s)
-            const speedBonus = Math.ceil((timeLeft / 300) * 50);
-            const totalScore = 50 + speedBonus;
+            // Base 250 + Speed Bonus (Max 250 based on 10 mins/600s)
+            const speedBonus = Math.ceil((timeLeft / 600) * 250);
+            const totalScore = 250 + speedBonus;
             addScore(totalScore, 'react'); // Attribute to Round 2
 
             // Persist Score for Round 2
@@ -321,6 +345,12 @@ const Round3Java: React.FC = () => {
                     </div>
                 </>
             )}
+            <AlertPopup
+                isOpen={alert.isOpen}
+                message={alert.message}
+                type={alert.type}
+                onClose={() => setAlert(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 };
