@@ -232,7 +232,7 @@ const Login: React.FC = () => {
                                 {/* Animated particles */}
                                 <div className="absolute inset-0 opacity-10">
                                     {[...Array(10)].map((_, i) => (
-                                        <motion.div
+                                        <motion.div 
                                             key={i}
                                             className="absolute w-1 h-1 bg-cyan-500 rounded-full"
                                             style={{
