@@ -42,7 +42,7 @@ const RoundCoding: React.FC = () => {
             state.markCodingComplete();
 
             // NEW RULE: Automatic Selection (Score > 370)
-            const isQualified = state.codingScore > 300;
+            const isQualified = state.codingScore > 400;
 
             // 1. Persist Score for Admin Scoreboard (Round 1)
             const storageKey = 'round1_teams';
@@ -304,7 +304,7 @@ const RoundCoding: React.FC = () => {
                         <span className="text-xs text-gray-500 font-mono">SOLVED:</span>
                         <span className={`text-xs font-mono font-bold ${codingSolvedCount >= MIN_SOLVED ? 'text-green-400' : 'text-yellow-400'
                             }`}>
-                            {codingSolvedCount} / {MIN_SOLVED} (Min to Qualify)
+                            {codingSolvedCount}
                         </span>
                         {codingSolvedCount >= MIN_SOLVED && (
                             <span className="text-xs text-green-400 font-mono">✓ QUALIFIED</span>

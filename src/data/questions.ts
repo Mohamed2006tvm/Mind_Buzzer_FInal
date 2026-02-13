@@ -59,84 +59,78 @@ print(validate_password("MyPass123"))`,
   {
     id: 3,
     language: 'python',
-    title: "Email Validator",
-    description: "Fix the validation logic for email format.",
-    buggy_code: `def is_valid_email(email):
-    if "@" not in email:
-        return False
+    title: "User Login System",
+    description: "Fix the syntax and logical errors in the login validation.",
+    buggy_code: `def login(username, password):
+    stored_username = "admin"
+    stored_password = "Admin@123"
     
-    parts = email.split("@")
+    if username = stored_username and password == stored_password:
+        return "Login Successful"
     
-    if len(parts) != 2:
-        return False
+    if username != stored_username:
+        return "Invalid Username"
+    elif password != stored_password
+        return "Invalid Password"
     
-    username = parts[0]
-    domain = parts[1]
-    
-    if len(username) == 0 or len(domain) = 0:
-        return False
-    
-    return "." in domain
+    return "Access Denied"
 
-print(is_valid_email("user@example.com"))`,
-    expected_output: "True",
-    hint: "There is an assignment operator mistake."
+print(login("admin", "Admin@123"))`,
+    expected_output: "Login Successful"
   },
 
   {
     id: 4,
     language: 'python',
-    title: "Word Frequency Counter",
-    description: "Fix the dictionary update logic.",
-    buggy_code: `def count_words(sentence):
-    words = sentence.lower().split()
-    frequency = {}
+    title: "Login Attempt Tracker",
+    description: "Fix the syntax and logic errors in the attempt checking system.",
+    buggy_code: `def check_login(input_password):
+    correct_password = "pass123"
+    attempts = 0
     
-    for word in words:
-        # Remove punctuation
-        clean_word = word.strip(".,!?;:")
-        
-        if clean_word in frequency:
-            frequency[clean_word] += 1
+    while attempts < 3
+        if input_password == correct_password:
+            return "Login Successful"
         else:
-            frequency[clean_word] == 1
+            attempts += 1
     
-    return frequency
+    if attempts = 3:
+        return "Account Locked"
 
-text = "Hello world, hello Python, Python is great"
-result = count_words(text)
-print(result)`,
-    expected_output: "{'hello': 2, 'world': 1, 'python': 2, 'is': 1, 'great': 1}",
-    hint: "Dictionary assignment is incorrect."
+print(check_login("pass123"))`,
+    expected_output: "Login Successful"
   },
 
   {
-    id: 5,
+    id: 8,
     language: 'python',
-    title: "Movie Ticket Booking",
-    description: "Fix the conditional statement for matinee discount.",
-    buggy_code: `def book_tickets(age, num_tickets, show_time):
-    ticket_price = 200
+    title: "Secure OTP Login Verification",
+    description: "Fix the syntax and logical errors in the OTP verification system with attempt tracking.",
+    buggy_code: `def verify_otp(sent_otp, entered_otp, attempts):
+    max_attempts = 3
     
-    # Senior citizen discount
-    if age >= 60:
-        ticket_price = 150
-    # Child discount
-    elif age < 12:
-        ticket_price = 100
+    if attempts >= max_attempts:
+        return "Account Locked"
     
-    total = ticket_price * num_tickets
+    # OTP format check
+    if len(entered_otp) != 6 or not entered_otp.isdigit()
+        return "Invalid OTP Format"
     
-    # Matinee show discount
-    if show_time == "matinee"
-        total = total * 0.8
+    # Logical mistake in comparison
+    if entered_otp != sent_otp:
+        return "OTP Verified"
+    else:
+        attempts += 1
     
-    return f"Total: Rs. {total}"
+    if attempts == max_attempts:
+        return "Account Locked"
+    
+    return "Incorrect OTP"
 
-print(book_tickets(65, 2, "matinee"))`,
-    expected_output: "Total: Rs. 240.0",
-    hint: "Check missing colon in condition."
+print(verify_otp("456789", "456789", 0))`,
+    expected_output: "OTP Verified"
   }
+
 ];
 
 
