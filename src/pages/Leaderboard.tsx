@@ -1,83 +1,121 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+// import { supabase } from '../lib/supabase';
+import { Crown, Trophy, Medal } from 'lucide-react';
+
+interface Team {
+    name: string;
+    score: number;
+    status: string;
+}
 
 const Leaderboard: React.FC = () => {
-    const { setPhase, score, teamName } = useGameStore();
+    const { setPhase, teamName } = useGameStore();
+    const [teams, setTeams] = useState<Team[]>([]);
 
-    // Consolidate Scores from LocalStorage
-    const round1 = JSON.parse(localStorage.getItem('round1_teams') || '[]');
-    const round2 = JSON.parse(localStorage.getItem('round2_teams') || '[]');
+    useEffect(() => {
+        const fetchLeaderboard = () => {
+            try {
+                const raw1 = localStorage.getItem('round1_teams');
+                // Could also merge with round2 if available
+                const data = raw1 ? JSON.parse(raw1) : [];
 
-    const teamScores: Record<string, { name: string, r1: number, r2: number, total: number, status: string }> = {};
+                // Sort by score
+                // Cast to Team interface
+                const sorted: Team[] = data
+                    .map((t: any) => ({
+                        name: t.name,
+                        score: t.score || 0,
+                        status: t.status || 'playing'
+                    }))
+                    .sort((a: Team, b: Team) => b.score - a.score);
 
-    // Process Round 1
-    round1.forEach((t: any) => {
-        if (!teamScores[t.name]) teamScores[t.name] = { name: t.name, r1: 0, r2: 0, total: 0, status: 'PENDING' };
-        teamScores[t.name].r1 = t.score || 0;
-        teamScores[t.name].total += t.score || 0;
-        teamScores[t.name].status = t.status || 'PENDING';
-    });
+                setTeams(sorted);
+            } catch (e) {
+                console.error("Failed to load leaderboard");
+            }
+        };
 
-    // Process Round 2
-    round2.forEach((t: any) => {
-        if (!teamScores[t.name]) teamScores[t.name] = { name: t.name, r1: 0, r2: 0, total: 0, status: 'PENDING' };
-        teamScores[t.name].r2 = t.score || 0;
-        teamScores[t.name].total += (t.score || 0);
-        // Status from R2 overrides R1 if set
-        if (t.status) teamScores[t.name].status = t.status;
-    });
+        fetchLeaderboard();
 
-    // Add Current User Live if not in storage yet (e.g. playing)
-    if (teamName && !teamScores[teamName]) {
-        teamScores[teamName] = { name: teamName, r1: 0, r2: 0, total: score, status: 'PLAYING' };
-    } else if (teamName && teamScores[teamName]) {
-        // Update total with live score if it's potentially higher/different?
-        // Actually, store is source of truth for current user.
-        // Let's trust local storage for "Submitted" rounds, but maybe show current score?
-        // Simpler: Just rely on what's in storage + current state
-    }
-
-    const allData = Object.values(teamScores).sort((a, b) => b.total - a.total);
+        // Poll every few seconds to simulate realtime
+        const interval = setInterval(fetchLeaderboard, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div className="w-full max-w-4xl p-8 flex flex-col items-center gap-8 relative z-20">
-            <h1 className="text-4xl font-heading text-yellow-400 tracking-widest drop-shadow-lg">GLOBAL RANKINGS</h1>
+            <h1 className="text-4xl font-heading text-yellow-400 tracking-widest drop-shadow-lg flex items-center gap-4">
+                <Trophy size={40} className="text-yellow-500" />
+                GLOBAL RANKINGS
+            </h1>
 
-            <div className="w-full bg-black/60 border border-yellow-500/30 rounded-xl overflow-hidden backdrop-blur-md">
+            <div className="w-full bg-black/60 border border-yellow-500/30 rounded-xl overflow-hidden backdrop-blur-md shadow-[0_0_50px_rgba(255,215,0,0.15)]">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-yellow-500/10 text-yellow-500 uppercase font-mono text-sm border-b border-yellow-500/20">
-                            <th className="p-4">Rank</th>
+                        <tr className="bg-yellow-900/20 text-yellow-500 uppercase font-mono text-sm border-b border-yellow-500/20">
+                            <th className="p-4 w-24 text-center">Rank</th>
                             <th className="p-4">Team Identity</th>
-                            <th className="p-4 text-center">R1</th>
-                            <th className="p-4 text-center">R2</th>
-                            <th className="p-4 text-center">Total</th>
                             <th className="p-4 text-center">Status</th>
+                            <th className="p-4 text-right">Total Score</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-300 font-mono">
-                        {allData.map((t, i) => (
-                            <tr key={i} className={`border-b border-gray-800 hover:bg-white/5 transition-colors ${t.name === teamName ? 'bg-neon-cyan/10' : ''} ${i < 3 ? 'shadow-[inset_0_0_20px_rgba(255,215,0,0.1)]' : ''}`}>
-                                <td className={`p-4 font-bold ${i === 0 ? 'text-yellow-400 text-xl' : i === 1 ? 'text-gray-300 text-lg' : i === 2 ? 'text-orange-400 text-lg' : 'text-gray-500'}`}>
-                                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                                </td>
-                                <td className={`p-4 font-bold ${t.name === teamName ? 'text-neon-cyan' : 'text-white'}`}>{t.name} {t.name === teamName && '(YOU)'}</td>
-                                <td className="p-4 text-center text-gray-500">{t.r1}</td>
-                                <td className="p-4 text-center text-gray-500">{t.r2}</td>
-                                <td className="p-4 text-center font-bold text-yellow-400">{t.total}</td>
-                                <td className="p-4 text-center">
-                                    <span className={`px-2 py-1 rounded text-xs ${t.status === 'QUALIFIED' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                                        {t.status}
-                                    </span>
+                        {teams.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} className="p-8 text-center text-gray-500 italic">
+                                    INITIALIZING UPLINK...
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            teams.map((t, i) => (
+                                <tr
+                                    key={i}
+                                    className={`border-b border-gray-800 hover:bg-white/5 transition-colors 
+                                        ${t.name === teamName ? 'bg-cyan-900/20 border-cyan-500/30' : ''}
+                                        ${i === 0 ? 'bg-yellow-900/10' : ''}
+                                    `}
+                                >
+                                    <td className="p-4 text-center py-6">
+                                        {i === 0 ? <Crown size={24} className="mx-auto text-yellow-400" /> :
+                                            i === 1 ? <Medal size={24} className="mx-auto text-gray-300" /> :
+                                                i === 2 ? <Medal size={24} className="mx-auto text-orange-400" /> :
+                                                    <span className="text-gray-500 font-bold">#{i + 1}</span>}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-lg flex items-center gap-2">
+                                            <span className={t.name === teamName ? 'text-cyan-400' : 'text-white'}>
+                                                {t.name}
+                                            </span>
+                                            {t.name === teamName &&
+                                                <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/30">YOU</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`px-2 py-1 rounded text-xs border ${t.status === 'promoted' ? 'border-green-500 text-green-400 bg-green-900/20' :
+                                            t.status === 'eliminated' ? 'border-red-500 text-red-400 bg-red-900/20' :
+                                                t.status === 'banned' ? 'border-red-600 text-red-600 bg-black line-through' :
+                                                    'border-gray-600 text-gray-400'
+                                            }`}>
+                                            {t.status.toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <span className="font-bold text-2xl text-yellow-400 font-display tracking-wider">
+                                            {t.score}
+                                        </span>
+                                        <span className="text-gray-600 text-xs ml-1">PTS</span>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
-            <button onClick={() => setPhase('dashboard')} className="cyber-button w-48 text-yellow-400 border-yellow-400 hover:bg-yellow-400">
-                CLOSE
+            <button onClick={() => setPhase('dashboard')} className="px-8 py-3 bg-black border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-all font-bold tracking-widest rounded shadow-[0_0_20px_rgba(255,215,0,0.2)]">
+                CLOSE RANKINGS
             </button>
         </div>
     );

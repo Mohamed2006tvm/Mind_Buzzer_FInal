@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { Lock, ShieldAlert, CheckCircle, XCircle, Trophy } from 'lucide-react';
+import { ShieldAlert, Trophy, Trash2 } from 'lucide-react';
+// import { supabase } from '../lib/supabase';
 import RoundScoreboard from './RoundScoreboard';
+
+interface Team {
+    id: number;
+    name: string;
+    score: number;
+    status: 'playing' | 'promoted' | 'eliminated' | 'waiting' | 'banned';
+    coding_completed: boolean;
+    react_completed: boolean;
+}
 
 const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const {
         score,
         teamName,
-        setCompetitionStatus,
-        competitionStatus,
         competitionAccessEnabled,
         setCompetitionAccess
     } = useGameStore();
@@ -22,19 +30,99 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         maxScore: number;
     } | null>(null);
 
-    // Manual Tournament Management State
-    const [teams, setTeams] = useState([
-        { id: 1, name: 'TEAM 1', score: 0, status: 'playing' },
-        { id: 2, name: 'TEAM 2', score: 0, status: 'playing' },
-        { id: 3, name: 'TEAM 3', score: 0, status: 'playing' },
-        { id: 4, name: 'TEAM 4', score: 0, status: 'playing' },
-    ]);
+    const [teams, setTeams] = useState<Team[]>([]);
 
+    // Local Storage Data Management
+    // We will aggregate data from 'round1_teams' and 'round2_teams' etc.
+    // For the main scoreboard, we can just look at 'round1_teams' for now or a merged view.
 
+    const refreshTeams = () => {
+        try {
+            const raw1 = localStorage.getItem('round1_teams');
+            // const raw2 = localStorage.getItem('round2_teams');
+            const data1 = raw1 ? JSON.parse(raw1) : [];
+            // Map to Team interface
+            // Note: round1_teams structure might be slightly different [ { name, score, time } ]
+            // We adapt it here.
 
-    const updateTeamScore = (id: number, newScore: number) => {
-        setTeams(prev => prev.map(t => t.id === id ? { ...t, score: newScore } : t));
+            const adaptedTeams: Team[] = data1.map((t: any, idx: number) => ({
+                id: idx, // generate a temporary ID
+                name: t.name,
+                score: t.score,
+                status: t.status || 'playing', // We might need to guess status or add it to storage
+                coding_completed: true,
+                react_completed: false
+            })).sort((a: Team, b: Team) => b.score - a.score);
+
+            setTeams(adaptedTeams);
+        } catch (e) {
+            console.error("Failed to parse local teams", e);
+        }
     };
+
+    // Poll for updates (since we don't have realtime subscription anymore)
+    useEffect(() => {
+        if (!access) return;
+        refreshTeams();
+        const interval = setInterval(refreshTeams, 2000);
+        return () => clearInterval(interval);
+    }, [access]);
+
+    const updateTeamScore = async (id: number, newScore: number) => {
+        // Update in localStorage
+        // This is tricky because we generated IDs on the fly.
+        // We find by name.
+        const teamToUpdate = teams.find(t => t.id === id);
+        if (!teamToUpdate) return;
+
+        const raw1 = localStorage.getItem('round1_teams');
+        if (raw1) {
+            const data1 = JSON.parse(raw1);
+            const index = data1.findIndex((t: any) => t.name === teamToUpdate.name);
+            if (index !== -1) {
+                data1[index].score = newScore;
+                localStorage.setItem('round1_teams', JSON.stringify(data1));
+                refreshTeams();
+            }
+        }
+    };
+
+    const deleteTeam = async (id: number) => {
+        if (window.confirm("Are you sure you want to DELETE this team?")) {
+            const teamToDelete = teams.find(t => t.id === id);
+            if (!teamToDelete) return;
+
+            const raw1 = localStorage.getItem('round1_teams');
+            if (raw1) {
+                const data1 = JSON.parse(raw1);
+                const newData = data1.filter((t: any) => t.name !== teamToDelete.name);
+                localStorage.setItem('round1_teams', JSON.stringify(newData));
+                refreshTeams();
+            }
+        }
+    };
+
+    const resetAllTeams = async () => {
+        if (window.confirm("RESET scores and status for ALL teams?")) {
+            if (window.confirm("This will WIPE all localStorage data. Are you sure?")) {
+                localStorage.clear(); // Wipes everything including config
+                window.location.reload();
+            }
+        }
+    };
+
+    // Global toggle
+    const toggleCompetitionAccess = async (enabled: boolean) => {
+        const confirmMsg = enabled
+            ? 'START the competition? All participants will be able to access the platform.'
+            : 'STOP the competition? All participants will be blocked from accessing the platform.';
+
+        if (window.confirm(confirmMsg)) {
+            setCompetitionAccess(enabled);
+            // setCompetitionAccess in store already persists to localStorage
+        }
+    };
+
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,7 +158,7 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4">
-            <div className="w-full max-w-5xl bg-gray-900 border border-cyan-500 rounded-xl p-8 shadow-[0_0_100px_rgba(0,240,255,0.2)] max-h-[90vh] overflow-y-auto">
+            <div className="w-full max-w-6xl bg-gray-900 border border-cyan-500 rounded-xl p-8 shadow-[0_0_100px_rgba(0,240,255,0.2)] max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
                     <div className="flex gap-6 items-baseline">
                         <h2 className="text-3xl font-display text-cyan-400">ADMIN CONSOLE</h2>
@@ -106,40 +194,6 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             </div>
                         </div>
 
-                        {/* BANNED TEAMS WARNING */}
-                        {(() => {
-                            const banned = JSON.parse(localStorage.getItem('banned_users') || '[]');
-                            if (banned && banned.length > 0) {
-                                return (
-                                    <div className="bg-red-950/30 border border-red-500/50 p-4 rounded-lg mb-8">
-                                        <h3 className="text-red-500 font-bold mb-2 flex items-center gap-2">
-                                            <ShieldAlert size={20} />
-                                            BANNED USERS (TEAM NAMES)
-                                        </h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {banned.map((user: string) => (
-                                                <span key={user} className="px-3 py-1 bg-red-900/50 border border-red-500 text-red-400 text-xs font-mono rounded">
-                                                    {user}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                if (window.confirm("UNBAN all users?")) {
-                                                    localStorage.removeItem('banned_users');
-                                                    window.location.reload();
-                                                }
-                                            }}
-                                            className="mt-3 text-[10px] text-red-500 underline hover:text-white"
-                                        >
-                                            [FLUSH BAN LIST]
-                                        </button>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
-
                         {/* GLOBAL COMPETITION CONTROL */}
                         <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 p-6 rounded-lg border-2 border-purple-500/50 mb-6">
                             <h3 className="text-purple-400 font-mono mb-4 text-sm uppercase tracking-widest flex items-center gap-2">
@@ -162,11 +216,7 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 </div>
                                 <div className="flex gap-3">
                                     <button
-                                        onClick={() => {
-                                            if (window.confirm('START the competition? All participants will be able to access the platform.')) {
-                                                setCompetitionAccess(true);
-                                            }
-                                        }}
+                                        onClick={() => toggleCompetitionAccess(true)}
                                         disabled={competitionAccessEnabled}
                                         className={`px-6 py-3 font-bold tracking-widest border transition-all uppercase ${!competitionAccessEnabled
                                             ? 'bg-green-900/20 border-green-500 text-green-500 hover:bg-green-500 hover:text-black'
@@ -176,11 +226,7 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                         ▶ START
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            if (window.confirm('STOP the competition? All participants will be blocked from accessing the platform.')) {
-                                                setCompetitionAccess(false);
-                                            }
-                                        }}
+                                        onClick={() => toggleCompetitionAccess(false)}
                                         disabled={!competitionAccessEnabled}
                                         className={`px-6 py-3 font-bold tracking-widest border transition-all uppercase ${competitionAccessEnabled
                                             ? 'bg-red-900/20 border-red-500 text-red-500 hover:bg-red-500 hover:text-black'
@@ -199,9 +245,6 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 <Trophy size={16} />
                                 Round Scoreboards
                             </h3>
-                            <p className="text-gray-400 text-xs mb-4">
-                                Manage scores and team status per round. Does not affect game state directly.
-                            </p>
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setActiveRoundScoreboard({ name: 'LOGIC LEGENDS', number: 1, maxScore: 600 })}
@@ -232,103 +275,36 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 <div>
                                     <p className="text-white font-bold mb-1">Reset Everything</p>
                                     <p className="text-gray-400 text-xs">
-                                        Clear all localStorage and reload the page
+                                        Clear all database scores and reset status to 'playing'
                                     </p>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm(
-                                            '🔄 RESET EVERYTHING?\n\n' +
-                                            'Are you absolutely sure?'
-                                        )) {
-                                            localStorage.clear();
-                                            window.location.reload();
-                                        }
-                                    }}
+                                    onClick={resetAllTeams}
                                     className="px-6 py-3 font-bold tracking-widest border bg-red-900/20 border-red-500 text-red-500 hover:bg-red-500 hover:text-black transition-all uppercase"
                                 >
                                     🔄 RESET ALL
                                 </button>
                             </div>
                         </div>
-
-                        <div className="bg-black/50 p-6 rounded-lg border border-gray-700 mb-6">
-                            <h3 className="text-cyan-500 font-mono mb-4 text-sm uppercase tracking-widest">Set Status (This Computer)</h3>
-
-                            {competitionAccessEnabled && (
-                                <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-500/50 rounded text-yellow-500 text-xs font-mono">
-                                    ⚠️ Competition is ACTIVE - PROMOTE is disabled. Only DISQUALIFY is available.
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => {
-                                        if (competitionAccessEnabled) {
-                                            alert('❌ Cannot PROMOTE during active competition!');
-                                            return;
-                                        }
-                                        if (window.confirm('PROMOTE this team?')) {
-                                            setCompetitionStatus('promoted');
-                                        }
-                                    }}
-                                    disabled={competitionAccessEnabled}
-                                    className={`p-4 border rounded flex flex-col items-center gap-2 transition-all ${competitionAccessEnabled
-                                        ? 'bg-gray-900 border-gray-700 text-gray-600 cursor-not-allowed opacity-50'
-                                        : competitionStatus === 'promoted'
-                                            ? 'bg-green-500/20 border-green-500 text-green-400'
-                                            : 'border-gray-700 text-gray-500 hover:border-gray-500'
-                                        }`}
-                                >
-                                    <CheckCircle size={24} />
-                                    <span className="font-bold">PROMOTE</span>
-                                </button>
-
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm('🚨 DISQUALIFY this team?')) {
-                                            setCompetitionStatus('eliminated');
-                                        }
-                                    }}
-                                    className={`p-4 border rounded flex flex-col items-center gap-2 transition-all ${competitionStatus === 'eliminated'
-                                        ? 'bg-red-500/20 border-red-500 text-red-400'
-                                        : 'border-red-700 text-red-500 hover:border-red-500 hover:bg-red-900/20'
-                                        }`}
-                                >
-                                    <XCircle size={24} />
-                                    <span className="font-bold">DISQUALIFY</span>
-                                </button>
-
-                                <button
-                                    onClick={() => setCompetitionStatus('playing')}
-                                    className="p-4 border rounded flex flex-col items-center gap-2 transition-all border-gray-700 text-gray-500 hover:border-gray-500"
-                                >
-                                    <Lock size={24} />
-                                    <span className="font-bold">RESET STATUS</span>
-                                </button>
-                                <button
-                                    onClick={() => setCompetitionStatus('waiting')}
-                                    className="p-4 border rounded flex flex-col items-center gap-2 transition-all border-gray-700 text-gray-500 hover:border-gray-500"
-                                >
-                                    <Lock size={24} />
-                                    <span className="font-bold">LOCK / WAIT</span>
-                                </button>
-                            </div>
-                        </div>
                     </>
                 ) : (
-                    // TOURNAMENT SCOREBOARD (Manual)
+                    // TOURNAMENT SCOREBOARD (Live from Supabase)
                     <div className="space-y-6">
-                        <div className="bg-yellow-900/10 border border-yellow-900/30 p-3 rounded text-yellow-600 text-xs italic font-mono text-center">
-                            MANUAL TRACKER: Use this to track progress of all teams locally.
+                        <div className="bg-green-900/10 border border-green-900/30 p-3 rounded text-green-500 text-xs italic font-mono text-center">
+                            LIVE DATABASE CONNECTION ACTIVE
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            {teams.map((t) => (
+                            {teams.length === 0 ? (
+                                <div className="text-center p-8 text-gray-500 font-mono">NO TEAMS FOUND</div>
+                            ) : teams.map((t) => (
                                 <div key={t.id} className="p-4 rounded border border-gray-700 bg-gray-900 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="font-bold text-white text-lg">{t.name}</div>
-                                        <div className="text-xs font-mono text-gray-500 uppercase">{t.status}</div>
+                                        <div className={`text-xs font-mono uppercase px-2 py-1 rounded border ${t.status === 'promoted' ? 'border-green-500 text-green-500 bg-green-900/20' :
+                                            t.status === 'eliminated' ? 'border-red-500 text-red-500 bg-red-900/20' :
+                                                'border-gray-500 text-gray-400'
+                                            }`}>{t.status}</div>
                                     </div>
                                     <div className="flex items-center gap-6">
                                         <div className="flex flex-col items-end">
@@ -340,6 +316,12 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                                 className="bg-black border border-gray-700 w-20 text-right p-1 text-cyan-400 font-bold outline-none"
                                             />
                                         </div>
+                                        <div className="flex gap-2">
+                                            {/* Admin features removed as requested - Scoreboard only */}
+                                            <button onClick={() => deleteTeam(t.id)} className="text-red-700 hover:bg-red-900/20 p-2 rounded border border-transparent hover:border-red-700" title="Delete Team">
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -349,16 +331,19 @@ const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
 
             {/* Round Scoreboard Modal */}
-            {activeRoundScoreboard && (
-                <RoundScoreboard
-                    roundName={activeRoundScoreboard.name}
-                    roundNumber={activeRoundScoreboard.number}
-                    maxScore={activeRoundScoreboard.maxScore}
-                    onClose={() => setActiveRoundScoreboard(null)}
-                />
-            )}
-        </div>
+            {
+                activeRoundScoreboard && (
+                    <RoundScoreboard
+                        roundName={activeRoundScoreboard.name}
+                        roundNumber={activeRoundScoreboard.number}
+                        maxScore={activeRoundScoreboard.maxScore}
+                        onClose={() => setActiveRoundScoreboard(null)}
+                    />
+                )
+            }
+        </div >
     );
 };
 
 export default AdminPanel;
+

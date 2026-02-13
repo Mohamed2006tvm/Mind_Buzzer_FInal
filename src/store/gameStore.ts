@@ -43,7 +43,7 @@ interface GameState {
     timerActive: boolean;
 
     // Competition Status
-    competitionStatus: 'playing' | 'waiting' | 'promoted' | 'eliminated';
+    competitionStatus: 'playing' | 'waiting' | 'promoted' | 'eliminated' | 'banned';
     roundInProgress: boolean;
     competitionAccessEnabled: boolean;
     cheated: boolean;
@@ -79,12 +79,12 @@ interface GameState {
     tickTimer: () => void;
     stopTimer: () => void;
     resetGame: () => void;
-    setCompetitionStatus: (status: 'playing' | 'waiting' | 'promoted' | 'eliminated') => void;
+    setCompetitionStatus: (status: 'playing' | 'waiting' | 'promoted' | 'eliminated' | 'banned') => void;
 }
 
 export const useGameStore = create<GameState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             teamName: '',
             score: 0,
             phase: 'login',
@@ -118,6 +118,7 @@ export const useGameStore = create<GameState>()(
                 if (round === 'coding') return { score: newScore, codingScore: state.codingScore + points };
                 if (round === 'react') return { score: newScore, reactScore: state.reactScore + points };
                 return { score: newScore };
+                
             }),
 
             // Coding Round Logic
@@ -135,15 +136,8 @@ export const useGameStore = create<GameState>()(
             markJavaComplete: () => set({ reactCompleted: true, roundInProgress: false }), // Reuse reactCompleted flag or add javaCompleted if needed
 
             setCheated: (cheated) => {
-                if (cheated) {
-                    const state = get();
-                    const banned = JSON.parse(localStorage.getItem('banned_users') || '[]');
-                    if (state.teamName && !banned.includes(state.teamName)) {
-                        banned.push(state.teamName);
-                        localStorage.setItem('banned_users', JSON.stringify(banned));
-                    }
-                }
-                set({ cheated, competitionStatus: 'eliminated' });
+                // If cheated, set status to banned
+                set({ cheated, competitionStatus: 'banned' });
             },
 
             setRoundInProgress: (inProgress) => set({ roundInProgress: inProgress }),

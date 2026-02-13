@@ -3,10 +3,11 @@ import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { User, Zap, Lock } from 'lucide-react';
 import useSound from 'use-sound';
+// import { supabase } from '../lib/supabase';
 
 // Using consistent high-quality UI sounds
 const SFX = {
-    CLICK: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3', // Affirmative click
+    CLICK: '', // Sound disabled
 };
 
 const Login: React.FC = () => {
@@ -18,20 +19,26 @@ const Login: React.FC = () => {
     const [name, setName] = useState('');
     const [playClick] = useSound(SFX.CLICK, { volume: 0.5 });
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         const upperName = name.trim().toUpperCase();
 
         // 1. Validation
         if (!upperName) return;
 
-        // Check for Banned Users
-        const banned = JSON.parse(localStorage.getItem('banned_users') || '[]');
-        if (banned.includes(upperName)) {
-            alert("ACCESS DENIED: ACCOUNT TERMINATED DUE TO VIOLATION.");
-            playClick();
-            return;
-        }
+        // Local Storage Mode: No remote ban check.
+        // If we want to simulate bans, we could check a 'banned_teams' key in localStorage,
+        // but for now we assume free access or admin-managed local state.
+
+        // Submit to Google Sheet (Async - Fire & Forget)
+        import('../lib/googleSheets').then(({ submitToGoogleSheet }) => {
+            submitToGoogleSheet({
+                team_name: upperName,
+                round1_score: 0,
+                round2_score: 0,
+                total_score: 0
+            });
+        });
 
         playClick();
 

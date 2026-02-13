@@ -6,12 +6,12 @@ import useSound from 'use-sound';
 
 // Using consistent high-quality UI sounds
 const SFX = {
-    SUCCESS: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
-    FAIL: 'https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3',
+    SUCCESS: '', // Placeholder - add local file if needed
+    FAIL: '',    // Placeholder - add local file if needed
 };
 
 const StatusScreen: React.FC = () => {
-    const { competitionStatus, setCompetitionStatus, setPhase, unlockReact } = useGameStore();
+    const { competitionStatus, setCompetitionStatus, setPhase, unlockReact, score, codingScore } = useGameStore();
 
     const [playSuccess] = useSound(SFX.SUCCESS, { volume: 0.6 });
     const [playFail] = useSound(SFX.FAIL, { volume: 0.5 });
@@ -102,6 +102,15 @@ const StatusScreen: React.FC = () => {
                                 <motion.span
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.75 }}
+                                    className="text-yellow-400"
+                                >
+                                    // YOUR SCORE: {score.toString().padStart(4, '0')} PTS
+                                </motion.span>
+                                <br />
+                                <motion.span
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
                                     transition={{ delay: 0.9 }}
                                     className="text-yellow-300 font-bold"
                                 >
@@ -141,7 +150,8 @@ const StatusScreen: React.FC = () => {
         );
     }
 
-    if (competitionStatus === 'eliminated') {
+    if (competitionStatus === 'eliminated' || competitionStatus === 'banned') {
+        const isBanned = competitionStatus === 'banned';
         return (
             <div className="flex flex-col items-center justify-center w-full min-h-full py-12 text-center relative z-20">
                 <motion.div
@@ -170,11 +180,13 @@ const StatusScreen: React.FC = () => {
                         </motion.div>
 
                         <h2 className="text-3xl md:text-4xl font-display text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                            THANK YOU FOR PARTICIPATING
+                            {isBanned ? 'ACCESS TERMINATED' : 'THANK YOU FOR PARTICIPATING'}
                         </h2>
 
                         <p className="font-mono text-gray-300 text-sm md:text-base mb-6 leading-relaxed max-w-lg mx-auto">
-                            Agent, your skills have been noted. The recruitment process is highly competitive, and while you will not be advancing to the next sector, your contribution is valued.
+                            {isBanned
+                                ? "VIOLATION DETECTED. YOUR NEURAL LINK HAS BEEN SEVERED PERMANENTLY."
+                                : "Agent, your skills have been noted. The recruitment process is highly competitive, and while you will not be advancing to the next sector, your contribution is valued."}
                         </p>
 
                         <div className="border-l-4 border-red-600 bg-red-900/20 p-4 text-left mb-6 rounded-r-lg backdrop-blur-sm">
@@ -183,22 +195,24 @@ const StatusScreen: React.FC = () => {
                                 :: SYSTEM REPORT ::
                             </p>
                             <p className="text-cyan-400 font-mono text-xs space-y-1">
-                                &gt; Performance Data: <span className="text-gray-400">Archived</span>.<br />
+                                &gt; Performance Data: <span className="text-yellow-500">{codingScore} PTS</span>.<br />
                                 &gt; System Integrity: <span className="text-green-500">100%</span>.<br />
-                                &gt; Status: <span className="text-white font-bold">HONORABLE DISCHARGE</span>.
+                                &gt; Status: <span className="text-white font-bold">{isBanned ? 'DISHONORABLE DISCHARGE' : 'HONORABLE DISCHARGE'}</span>.
                             </p>
                         </div>
 
-                        {/* Motivational Quote */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                            className="mb-8 font-mono text-yellow-500/80 text-xs italic border-t border-b border-gray-800 py-3 max-w-md mx-auto bg-yellow-900/10 rounded"
-                        >
-                            "Failure is simply the opportunity to begin again, this time more intelligently." <br />
-                            <span className="text-gray-600 not-italic text-[10px] mt-1 block">- Henry Ford</span>
-                        </motion.div>
+                        {/* Motivational Quote (Only for eliminated, not banned) */}
+                        {!isBanned && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="mb-8 font-mono text-yellow-500/80 text-xs italic border-t border-b border-gray-800 py-3 max-w-md mx-auto bg-yellow-900/10 rounded"
+                            >
+                                "Failure is simply the opportunity to begin again, this time more intelligently." <br />
+                                <span className="text-gray-600 not-italic text-[10px] mt-1 block">- Henry Ford</span>
+                            </motion.div>
+                        )}
 
                         <motion.button
                             initial={{ opacity: 0, y: 10 }}
@@ -290,6 +304,7 @@ const StatusScreen: React.FC = () => {
                         >
                             <p className="font-mono text-green-400 text-lg">
                                 // CLEARANCE LEVEL INCREASED.<br />
+                                // SCORE:{codingScore} PTS.<br />
                                 // NEW MODULES UNLOCKED.<br />
                                 <span className="text-green-300 font-bold">// PROCEED TO NEXT SECTOR.</span>
                             </p>

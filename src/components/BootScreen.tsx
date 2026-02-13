@@ -4,7 +4,7 @@ import { useGameSounds } from '../hooks/useGameSounds';
 import useSound from 'use-sound';
 
 // A powerful dramatic boot sound
-const BOOT_SFX = ''; // Disabled external link to prevent 403 errors
+const BOOT_SFX = ''; // Sound disabled
 
 interface BootScreenProps {
     onComplete: () => void;
@@ -122,8 +122,8 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3 }}
                             className={`${i === lines.slice(-5).length - 1
-                                    ? 'text-white text-xl md:text-2xl font-bold bg-green-900/30 px-6 py-2 rounded-lg border border-green-500/30 shadow-[0_0_15px_rgba(0,255,0,0.2)]'
-                                    : 'text-green-600/80 text-sm md:text-base'
+                                ? 'text-white text-xl md:text-2xl font-bold bg-green-900/30 px-6 py-2 rounded-lg border border-green-500/30 shadow-[0_0_15px_rgba(0,255,0,0.2)]'
+                                : 'text-green-600/80 text-sm md:text-base'
                                 }`}
                         >
                             <span className="text-green-400 mr-2">&gt;</span>
